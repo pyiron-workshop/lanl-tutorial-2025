@@ -28,7 +28,6 @@ jobs:
         for f in $(find . -name '*.ipynb' | sort -n); do echo "- file: ${f#*/}" >> _toc.yml; done
         curl https://pyiron.org/images/logo_dark.png --output logo_dark.png
         bash .github/ci_support/write_book_config.sh
-        rm CODE_OF_CONDUCT.md LICENSE
         cat _toc.yml
         jupyter-book build . --path-output public
     - run: mv public/_build/html public_html
