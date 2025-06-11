@@ -2,9 +2,6 @@
 # pyiron config 
 python .github/ci_support/pyironconfig.py
 
-# import dataset
-bash .github/ci_support/import_dataset.sh
-
 # conda install papermill
 conda install -c conda-forge papermill
 

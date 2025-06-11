@@ -1,0 +1,13 @@
+title: pyiron tutorial
+author: Jan Janssen
+
+execute:
+  execute_notebooks           : off
+
+repository:
+    url                       : http://workshop.pyiron.org/lanl-tutorial-2025
+    path_to_book              : ""
+
+launch_buttons:
+  notebook_interface          : jupyterlab
+  binderhub_url               : https://mybinder.org

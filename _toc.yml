@@ -1,0 +1,6 @@
+format: jb-book
+root: README
+chapters:
+- file: 1-getting_started_with_pyiron.ipynb
+- file: 2-data-driven-materials-science.ipynb
+- file: 3-implement-new-job-classes.ipynb
