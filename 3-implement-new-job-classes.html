@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>GenericJob class &#8212; pyiron tutorial</title>
+    <title>Implement new pyiron jobs &#8212; pyiron tutorial</title>
   
   
   
@@ -189,11 +189,7 @@
 
 
 
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">GenericJob class</a></li>
-
-
-
-
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Implement new pyiron jobs</a></li>
 </ul>
 
     </div>
@@ -363,7 +359,7 @@ document.write(`
               
 
 <div id="jb-print-docs-body" class="onlyprint">
-    <h1>GenericJob class</h1>
+    <h1>Implement new pyiron jobs</h1>
     <!-- Table of contents -->
     <div id="print-main-content">
         <div id="jb-print-toc">
@@ -373,13 +369,20 @@ document.write(`
             </div>
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#">GenericJob class</a></li>
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#template-job">Template Job</a></li>
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#python-template-job">Python Template Job</a></li>
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#for-testing">For testing</a></li>
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#job-decorator">Job decorator</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#external-executable">External Executable</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#genericjob">GenericJob</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#template-job">Template Job</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#for-testing">For testing</a></li>
 </ul>
-
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#python-function">Python Function</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#python-template-job">Python Template Job</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#function-wrapper">Function Wrapper</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#job-decorator">Job decorator</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#summary">Summary</a></li>
+</ul>
             </nav>
         </div>
     </div>
@@ -390,16 +393,30 @@ document.write(`
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <div class="cell docutils container">
+  <section class="tex2jax_ignore mathjax_ignore" id="implement-new-pyiron-jobs">
+<h1>Implement new pyiron jobs<a class="headerlink" href="#implement-new-pyiron-jobs" title="Link to this heading">#</a></h1>
+<p>Author: <a class="reference external" href="https://jan-janssen.com">jan-janssen</a></p>
+<p>While the first two tutorials covered the use of existing simulation codes e.g. LAMMPS in pyiron and how multiple calculation can be combined in a workflow using the <code class="docutils literal notranslate"><span class="pre">GenericMasters</span></code> jobs like the <code class="docutils literal notranslate"><span class="pre">Murnaghan</span></code> to calculate energy volume curves, the implementation of new simulation codes and utilities is another strength of pyiron. To emphasise the application of pyiron beyond the scope of atomistic simulations, the pyiron project was split in two parts <code class="docutils literal notranslate"><span class="pre">pyiron_atomistics</span></code> for the atomistic simulation codes and utilities and <code class="docutils literal notranslate"><span class="pre">pyiron_base</span></code> for the general job management of pyiron which can be used to define your own job classes.</p>
+<p>In the following <code class="docutils literal notranslate"><span class="pre">pyiron_base</span></code> is used to demonstrate the implementation of two example jobs, the first one calling an external executable and the second calling a python function and representing it as pyiron job object. For each of two categories there are multiple slightly different variants how pyiron job objects can be defined.</p>
+<p>In analogy to the previous tutorials we enable the autocompletion for multiple levels using:</p>
+<div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">config</span> IPCompleter.evaluation=&#39;unsafe&#39;
 </pre></div>
 </div>
 </div>
 </div>
-<section class="tex2jax_ignore mathjax_ignore" id="genericjob-class">
-<h1>GenericJob class<a class="headerlink" href="#genericjob-class" title="Link to this heading">#</a></h1>
-<p>Already discussed in the initial pyiron paper in Appendix C, the code is slightly update to be compatible with the recent version of <code class="docutils literal notranslate"><span class="pre">pyiron_base</span></code>. The two main parts are the <code class="docutils literal notranslate"><span class="pre">write_input()</span></code> function and the <code class="docutils literal notranslate"><span class="pre">collect_output()</span></code> function.</p>
+<section id="external-executable">
+<h2>External Executable<a class="headerlink" href="#external-executable" title="Link to this heading">#</a></h2>
+<p>While an increasing number of simulation codes provide Python bindings so they can be intergrated in a Python Function call, there are still a number of external executables one might want to integrate in a given workflow. For the example here the executable is the shell command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cat</span> <span class="nb">input</span> <span class="o">&gt;</span> <span class="n">output</span>
+</pre></div>
+</div>
+<p>It copies the content of the input file to the output file, still this command could be replaced with any other call of an external executable.</p>
+<section id="genericjob">
+<h3>GenericJob<a class="headerlink" href="#genericjob" title="Link to this heading">#</a></h3>
+<p>Already the initial <a class="reference external" href="https://doi.org/10.1016/j.commatsci.2018.07.043">pyiron paper</a> introduced the implementation of custom pyiron job objects in Appendix C. Here the code is slightly modified to be compatible with the recent version of <code class="docutils literal notranslate"><span class="pre">pyiron_base</span></code>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">GenericJob</span></code> class as well as the <code class="docutils literal notranslate"><span class="pre">GenericParameters</span></code> class can both be imported from <code class="docutils literal notranslate"><span class="pre">pyiron_base</span></code>. In addition, the <code class="docutils literal notranslate"><span class="pre">os</span></code> module from the standard library is imported to define the path to the input and output files.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -408,6 +425,13 @@ document.write(`
 </div>
 </div>
 </div>
+<p>The job class <code class="docutils literal notranslate"><span class="pre">ToyJob</span></code> in this example is derived from the <code class="docutils literal notranslate"><span class="pre">GenericJob</span></code> class and defines four functions:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">write_input()</span></code> writes the input which based on the input stored in the <code class="docutils literal notranslate"><span class="pre">ToyJob</span></code> class to the working directory before the external executable is called.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">collect_output()</span></code> reads the input from the working directory and stores it in the HDF5 file of the job object.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">to_hdf()</span></code> stores the current instance of the <code class="docutils literal notranslate"><span class="pre">ToyJob</span></code> class in the HDF5 file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">from_hdf()</span></code> reloads a previously stored instance of the <code class="docutils literal notranslate"><span class="pre">ToyJob</span></code> class from the HDF5 file.</p></li>
+</ul>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ToyJob</span><span class="p">(</span><span class="n">GenericJob</span><span class="p">):</span>
@@ -449,6 +473,7 @@ document.write(`
 </div>
 </div>
 </div>
+<p>In addtion, to the <code class="docutils literal notranslate"><span class="pre">ToyJob</span></code> class we also define the <code class="docutils literal notranslate"><span class="pre">ToyInput</span></code> class derived from the <code class="docutils literal notranslate"><span class="pre">GenericParameters</span></code>. This class is primarily used to define the default parameters of the <code class="docutils literal notranslate"><span class="pre">ToyJob</span></code> class and simplifies the writing of the input files in the <code class="docutils literal notranslate"><span class="pre">write_input()</span></code> function.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ToyInput</span><span class="p">(</span><span class="n">GenericParameters</span><span class="p">):</span>
@@ -464,7 +489,7 @@ document.write(`
 </div>
 </div>
 </div>
-<p>Use the newly created job in a project</p>
+<p>Following the definition of the two classes <code class="docutils literal notranslate"><span class="pre">ToyJob</span></code> and <code class="docutils literal notranslate"><span class="pre">ToyInput</span></code> we can use the <code class="docutils literal notranslate"><span class="pre">ToyJob</span></code> class in analogy to all the other pyiron job classes. To demonstrate the functionality of the <code class="docutils literal notranslate"><span class="pre">ToyJob</span></code> class we do a simple test calculation.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyiron_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Project</span>
@@ -486,8 +511,9 @@ document.write(`
 </div>
 </div>
 <div class="cell_output docutils container">
-<script type="application/vnd.jupyter.widget-view+json">{"model_id": "be47f302b9084aba843bb9604ab3183c", "version_major": 2, "version_minor": 0}</script></div>
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "02c0fdec9ef64aadb640f538c3ea11fc", "version_major": 2, "version_minor": 0}</script></div>
 </div>
+<p>After the project is imported and a new project is created which does not contain any previous calculation the <code class="docutils literal notranslate"><span class="pre">ToyJob</span></code> class can be used in the <code class="docutils literal notranslate"><span class="pre">create_job()</span></code> function to create a corresponding pyiron job object. In addition, the <code class="docutils literal notranslate"><span class="pre">job_name</span></code> is provided to distinguish multiple jobs of the same type.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">job</span> <span class="o">=</span> <span class="n">pr</span><span class="o">.</span><span class="n">create_job</span><span class="p">(</span><span class="n">ToyJob</span><span class="p">,</span> <span class="n">job_name</span><span class="o">=</span><span class="s2">&quot;toy&quot;</span><span class="p">)</span>
@@ -495,6 +521,7 @@ document.write(`
 </div>
 </div>
 </div>
+<p>By using the <code class="docutils literal notranslate"><span class="pre">GenericParameters</span></code> class as a basis for the <code class="docutils literal notranslate"><span class="pre">ToyInput</span></code> the input of the <code class="docutils literal notranslate"><span class="pre">ToyJob</span></code> is nicely rendered as pandas dataframe and can be modified just like the LAMMPS input in the previous examples:</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">job</span><span class="o">.</span><span class="n">input</span>
@@ -536,6 +563,7 @@ document.write(`
 </table>
 </div></div></div>
 </div>
+<p>After defining the input the job object is executed using the <code class="docutils literal notranslate"><span class="pre">run()</span></code> function and the output can be inspected using the <code class="docutils literal notranslate"><span class="pre">job.content</span></code> propoerty again in analogy to the LAMMPS job class in the previous tutorials.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">job</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
@@ -543,7 +571,7 @@ document.write(`
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The job toy was saved and received the ID: 157
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The job toy was saved and received the ID: 160
 </pre></div>
 </div>
 </div>
@@ -561,8 +589,9 @@ document.write(`
 </div>
 </div>
 </section>
-<section class="tex2jax_ignore mathjax_ignore" id="template-job">
-<h1>Template Job<a class="headerlink" href="#template-job" title="Link to this heading">#</a></h1>
+<section id="template-job">
+<h3>Template Job<a class="headerlink" href="#template-job" title="Link to this heading">#</a></h3>
+<p>One limitation of using the <code class="docutils literal notranslate"><span class="pre">GenericJob</span></code> class is the requirement for the user to define the <code class="docutils literal notranslate"><span class="pre">to_hdf()</span></code> and <code class="docutils literal notranslate"><span class="pre">from_hdf()</span></code> functions which handle the serialization and deserialization of the job class in the HDF5 files. As many jobs just use the same kind of standard input and output structures represented as a dictionary, the <code class="docutils literal notranslate"><span class="pre">TemplateJob</span></code> class defines more extensive defaults, so the user no longer has to define the <code class="docutils literal notranslate"><span class="pre">to_hdf()</span></code> and <code class="docutils literal notranslate"><span class="pre">from_hdf()</span></code> functions. Apart from this the <code class="docutils literal notranslate"><span class="pre">TemplateJob</span></code> class is based on the <code class="docutils literal notranslate"><span class="pre">GenericJob</span></code> class and behaves exactly the same.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyiron_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemplateJob</span>
@@ -583,15 +612,17 @@ document.write(`
 
     <span class="k">def</span><span class="w"> </span><span class="nf">collect_output</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">job</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">energy</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-        <span class="n">job</span><span class="o">.</span><span class="n">to_hdf</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">energy</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_hdf</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
 </div>
+<p>It is important to add the <code class="docutils literal notranslate"><span class="pre">to_hdf()</span></code> function call at the end of the <code class="docutils literal notranslate"><span class="pre">collect_output()</span></code> function to store the output after it was parsed, otherwise the output is lost. The usage in a project follows in analogy to the <code class="docutils literal notranslate"><span class="pre">GenericJob</span></code> class example above.</p>
+<p>Starting by defining a <code class="docutils literal notranslate"><span class="pre">Project</span></code> and removing the jobs in this project:</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pr</span> <span class="o">=</span> <span class="n">Project</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pr</span> <span class="o">=</span> <span class="n">Project</span><span class="p">(</span><span class="s1">&#39;testtemp&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -603,8 +634,9 @@ document.write(`
 </div>
 </div>
 <div class="cell_output docutils container">
-<script type="application/vnd.jupyter.widget-view+json">{"model_id": "d6192e0450ce4dd0bc17966865579803", "version_major": 2, "version_minor": 0}</script></div>
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "590ee19b2a3d4e239656d2c064a75a73", "version_major": 2, "version_minor": 0}</script></div>
 </div>
+<p>The <code class="docutils literal notranslate"><span class="pre">ToyTemplateJob</span></code> class can again be used to create pyiron job objects using the <code class="docutils literal notranslate"><span class="pre">create_job()</span></code> function of the project object. The input is assigned to the <code class="docutils literal notranslate"><span class="pre">job.input</span></code> property and afterwards the job is executed by calling the <code class="docutils literal notranslate"><span class="pre">run()</span></code> function.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">job</span> <span class="o">=</span> <span class="n">pr</span><span class="o">.</span><span class="n">create_job</span><span class="p">(</span><span class="n">ToyTemplateJob</span><span class="p">,</span> <span class="n">job_name</span><span class="o">=</span><span class="s2">&quot;toytemp&quot;</span><span class="p">)</span>
@@ -626,11 +658,12 @@ document.write(`
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The job toytemp was saved and received the ID: 157
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The job toytemp was saved and received the ID: 161
 </pre></div>
 </div>
 </div>
 </div>
+<p>After the successful execution the output is available in the <code class="docutils literal notranslate"><span class="pre">job.output</span></code> property just like it was set in the <code class="docutils literal notranslate"><span class="pre">collect_output()</span></code> function above.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">job</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">energy</span>
@@ -644,39 +677,31 @@ document.write(`
 </div>
 </div>
 </section>
-<section class="tex2jax_ignore mathjax_ignore" id="python-template-job">
-<h1>Python Template Job<a class="headerlink" href="#python-template-job" title="Link to this heading">#</a></h1>
-<p>For jobs which primarily consist of an existing Python function.</p>
+<section id="for-testing">
+<h3>For testing<a class="headerlink" href="#for-testing" title="Link to this heading">#</a></h3>
+<p>While defining job classes based on the <code class="docutils literal notranslate"><span class="pre">GenericJob</span></code> or <code class="docutils literal notranslate"><span class="pre">TemplateJob</span></code> class is commonly preferable for frequently used job types, pyiron also provides an simplified interface to dynamically define pyiron jobs during the run time. Again, a <code class="docutils literal notranslate"><span class="pre">write_input()</span></code> and <code class="docutils literal notranslate"><span class="pre">collect_output()</span></code> function are require to interface the pyiron framework to the external executable.</p>
+<p>It is important that the supported input parameters for the <code class="docutils literal notranslate"><span class="pre">write_input()</span></code> function are only <code class="docutils literal notranslate"><span class="pre">input_dict</span></code> and <code class="docutils literal notranslate"><span class="pre">working_directory</span></code> and for the <code class="docutils literal notranslate"><span class="pre">collect_output()</span></code> function just the <code class="docutils literal notranslate"><span class="pre">working_directory</span></code> and the <code class="docutils literal notranslate"><span class="pre">collect_output()</span></code> function should return a dictionary with the corresponding outputs. Any other function signature won’t work.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyiron_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">PythonTemplateJob</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">write_input</span><span class="p">(</span><span class="n">input_dict</span><span class="p">,</span> <span class="n">working_directory</span><span class="p">):</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;input&quot;</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">input_dict</span><span class="p">[</span><span class="s2">&quot;energy&quot;</span><span class="p">]))</span>
 </pre></div>
 </div>
 </div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">calculation</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
-    <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">value</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">collect_output</span><span class="p">(</span><span class="n">working_directory</span><span class="p">):</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;energy&quot;</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="p">}</span>
 </pre></div>
 </div>
 </div>
 </div>
-<div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ToyJob</span><span class="p">(</span><span class="n">PythonTemplateJob</span><span class="p">):</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project</span><span class="p">,</span> <span class="n">job_name</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span> 
-        <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">run_static</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="n">calculation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">finished</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">to_hdf</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-</div>
+<p>In analogy to the two previous examples a new project is defined and the existing jobs in this project are removed</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pr</span> <span class="o">=</span> <span class="n">Project</span><span class="p">(</span><span class="s1">&#39;template&#39;</span><span class="p">)</span>
@@ -691,11 +716,127 @@ document.write(`
 </div>
 </div>
 <div class="cell_output docutils container">
-<script type="application/vnd.jupyter.widget-view+json">{"model_id": "fb9f31bb2ba94703881ddda45855f24d", "version_major": 2, "version_minor": 0}</script></div>
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "3931d7942b904cae9304cbcbe1fdeea6", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<p>The process of creating a pyiron job class from the <code class="docutils literal notranslate"><span class="pre">write_input()</span></code> function and the <code class="docutils literal notranslate"><span class="pre">collect_output()</span></code> function is hidden in the <code class="docutils literal notranslate"><span class="pre">create_job_class()</span></code> function. This function takes both the <code class="docutils literal notranslate"><span class="pre">write_input()</span></code> function and the <code class="docutils literal notranslate"><span class="pre">collect_output()</span></code> function as an input in addition to a <code class="docutils literal notranslate"><span class="pre">class_name</span></code> to access the pyiron job class later on, a dictionary with default parameters <code class="docutils literal notranslate"><span class="pre">default_input_dict</span></code> and the external executable as string <code class="docutils literal notranslate"><span class="pre">executable_str</span></code>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pr</span><span class="o">.</span><span class="n">create_job_class</span><span class="p">(</span>
+    <span class="n">class_name</span><span class="o">=</span><span class="s2">&quot;ToyJob&quot;</span><span class="p">,</span>
+    <span class="n">write_input_funct</span><span class="o">=</span><span class="n">write_input</span><span class="p">,</span>
+    <span class="n">collect_output_funct</span><span class="o">=</span><span class="n">collect_output</span><span class="p">,</span>
+    <span class="n">default_input_dict</span><span class="o">=</span><span class="p">{</span>  <span class="c1"># Default Parameter </span>
+        <span class="s2">&quot;energy&quot;</span><span class="p">:</span> <span class="mf">100.0</span><span class="p">,</span> 
+    <span class="p">},</span>
+    <span class="n">executable_str</span><span class="o">=</span><span class="s2">&quot;cat input &gt; output&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>After the pyiron job class is created using the <code class="docutils literal notranslate"><span class="pre">create_job_class()</span></code> function, the corresponding pyiron job class instances can be created using the <code class="docutils literal notranslate"><span class="pre">pr.create.job.&lt;job</span> <span class="pre">class&gt;()</span></code> function, by just providing the job name as an input parameter, in analogy to the LAMMPS class in the previous tutorials.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">job</span> <span class="o">=</span> <span class="n">pr</span><span class="o">.</span><span class="n">create</span><span class="o">.</span><span class="n">job</span><span class="o">.</span><span class="n">ToyJob</span><span class="p">(</span><span class="n">job_name</span><span class="o">=</span><span class="s2">&quot;toy&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Again the input is assigned to the pyiron job class using the input property, afterwards the job is executed by calling the <code class="docutils literal notranslate"><span class="pre">run()</span></code> function and finally the output can be inspected using the output property.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">job</span><span class="o">.</span><span class="n">input</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><pre>DataContainer({
+  "energy": "100.0"
+})</pre></div></div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">job</span> <span class="o">=</span> <span class="n">pr</span><span class="o">.</span><span class="n">create_job</span><span class="p">(</span><span class="n">ToyJob</span><span class="p">,</span> <span class="n">job_name</span><span class="o">=</span><span class="s2">&quot;toy&quot;</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">job</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The job toy was saved and received the ID: 162
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">job</span><span class="o">.</span><span class="n">output</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><pre>DataContainer({
+  "stdout": "''",
+  "energy": "'100.0'"
+})</pre></div></div>
+</div>
+</section>
+</section>
+<section id="python-function">
+<h2>Python Function<a class="headerlink" href="#python-function" title="Link to this heading">#</a></h2>
+<p>An alternative to interfacing with external executables is integrating Python functions directly in pyiron by representing them as pyiron job objects. In this example this is demonstrated on a simple multiplication function. Still the multiplication function is just an example and commonly this approach is more useful for functions which need a long run time in the order of several minutes or even hours.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">calculation</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">value</span>
+</pre></div>
+</div>
+</div>
+</div>
+<section id="python-template-job">
+<h3>Python Template Job<a class="headerlink" href="#python-template-job" title="Link to this heading">#</a></h3>
+<p>Following the same idea as the <code class="docutils literal notranslate"><span class="pre">TemplateJob</span></code> the <code class="docutils literal notranslate"><span class="pre">PythonTemplateJob</span></code> provides a predefined pyiron job type to simplify the implementation of new job classes. It can again be imported directly from the <code class="docutils literal notranslate"><span class="pre">pyiron_base</span></code> module.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyiron_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">PythonTemplateJob</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">ToyPythonJob</span></code> class derived from the <code class="docutils literal notranslate"><span class="pre">PythonTemplateJob</span></code> needs primarily two functions the <code class="docutils literal notranslate"><span class="pre">__init__()</span></code> function to set the default input and the <code class="docutils literal notranslate"><span class="pre">run_static()</span></code> function which is executed when <code class="docutils literal notranslate"><span class="pre">run()</span></code> is called on the corresponding job object. This calls the python function, stores its output in the pyiron job object, sets the status of the pyiron job object to finished and finally serializes the pyiron job object in an HDF5 file.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ToyPythonJob</span><span class="p">(</span><span class="n">PythonTemplateJob</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project</span><span class="p">,</span> <span class="n">job_name</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">run_static</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="n">calculation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">finished</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_hdf</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The user can afterwards interact with the <code class="docutils literal notranslate"><span class="pre">ToyPythonJob</span></code> class just like any other pyiron job class. Again a new project is created and then the pyiron job object is defined in this project, the input is set using the <code class="docutils literal notranslate"><span class="pre">job.input</span></code> property and afterwards the job is executed using the <code class="docutils literal notranslate"><span class="pre">run()</span></code> function.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pr</span> <span class="o">=</span> <span class="n">Project</span><span class="p">(</span><span class="s1">&#39;template&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pr</span><span class="o">.</span><span class="n">remove_jobs</span><span class="p">(</span><span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">silently</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "57e9ebeed07948b99527759e022ab2c4", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">job</span> <span class="o">=</span> <span class="n">pr</span><span class="o">.</span><span class="n">create_job</span><span class="p">(</span><span class="n">ToyPythonJob</span><span class="p">,</span> <span class="n">job_name</span><span class="o">=</span><span class="s2">&quot;toy&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -714,7 +855,7 @@ document.write(`
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The job toy was saved and received the ID: 158
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The job toy was saved and received the ID: 162
 </pre></div>
 </div>
 </div>
@@ -743,31 +884,20 @@ document.write(`
 </div>
 </div>
 </section>
-<section class="tex2jax_ignore mathjax_ignore" id="for-testing">
-<h1>For testing<a class="headerlink" href="#for-testing" title="Link to this heading">#</a></h1>
+<section id="function-wrapper">
+<h3>Function Wrapper<a class="headerlink" href="#function-wrapper" title="Link to this heading">#</a></h3>
+<p>For testing python functions which might only be used in a given notebook, pyiron also providews a <code class="docutils literal notranslate"><span class="pre">wrap_python_function()</span></code> function in analogy to the <code class="docutils literal notranslate"><span class="pre">create_job_class()</span></code> function introduced above. The Python function is simply provided as an input to the <code class="docutils literal notranslate"><span class="pre">wrap_python_function()</span></code> function which then returns a job class object the user can interact with.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">write_input</span><span class="p">(</span><span class="n">input_dict</span><span class="p">,</span> <span class="n">working_directory</span><span class="p">):</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;input&quot;</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">input_dict</span><span class="p">[</span><span class="s2">&quot;energy&quot;</span><span class="p">]))</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">calculation</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">value</span>
 </pre></div>
 </div>
 </div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">collect_output</span><span class="p">(</span><span class="n">working_directory</span><span class="p">):</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;energy&quot;</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-        <span class="p">}</span>
-</pre></div>
-</div>
-</div>
-</div>
-<div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pr</span> <span class="o">=</span> <span class="n">Project</span><span class="p">(</span><span class="s1">&#39;template&#39;</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pr</span> <span class="o">=</span> <span class="n">Project</span><span class="p">(</span><span class="s1">&#39;wrapper&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -779,72 +909,7 @@ document.write(`
 </div>
 </div>
 <div class="cell_output docutils container">
-<script type="application/vnd.jupyter.widget-view+json">{"model_id": "5c0d79a573ec4e0a8b8e5f77df618354", "version_major": 2, "version_minor": 0}</script></div>
-</div>
-<div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pr</span><span class="o">.</span><span class="n">create_job_class</span><span class="p">(</span>
-    <span class="n">class_name</span><span class="o">=</span><span class="s2">&quot;ToyJob&quot;</span><span class="p">,</span>
-    <span class="n">write_input_funct</span><span class="o">=</span><span class="n">write_input</span><span class="p">,</span>
-    <span class="n">collect_output_funct</span><span class="o">=</span><span class="n">collect_output</span><span class="p">,</span>
-    <span class="n">default_input_dict</span><span class="o">=</span><span class="p">{</span>  <span class="c1"># Default Parameter </span>
-        <span class="s2">&quot;energy&quot;</span><span class="p">:</span> <span class="mf">100.0</span><span class="p">,</span> 
-    <span class="p">},</span>
-    <span class="n">executable_str</span><span class="o">=</span><span class="s2">&quot;cat input &gt; output&quot;</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-<div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">job</span> <span class="o">=</span> <span class="n">pr</span><span class="o">.</span><span class="n">create</span><span class="o">.</span><span class="n">job</span><span class="o">.</span><span class="n">ToyJob</span><span class="p">(</span><span class="n">job_name</span><span class="o">=</span><span class="s2">&quot;toy&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-<div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">job</span><span class="o">.</span><span class="n">input</span>
-</pre></div>
-</div>
-</div>
-<div class="cell_output docutils container">
-<div class="output text_html"><pre>DataContainer({
-  "energy": "100.0"
-})</pre></div></div>
-</div>
-<div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">job</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The job toy was saved and received the ID: 158
-</pre></div>
-</div>
-</div>
-</div>
-<div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">job</span><span class="o">.</span><span class="n">output</span>
-</pre></div>
-</div>
-</div>
-<div class="cell_output docutils container">
-<div class="output text_html"><pre>DataContainer({
-  "stdout": "''",
-  "energy": "'100.0'"
-})</pre></div></div>
-</div>
-<div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">calculation</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
-    <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">value</span>
-</pre></div>
-</div>
-</div>
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "6be329e3b28a4d41b2719021ff67d3a2", "version_major": 2, "version_minor": 0}</script></div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
@@ -867,7 +932,7 @@ document.write(`
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The job calculation_e3cd70ecfcd6595bfd3de99721d2e84c was saved and received the ID: 159
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The job calculation_e3cd70ecfcd6595bfd3de99721d2e84c was saved and received the ID: 163
 </pre></div>
 </div>
 </div>
@@ -884,8 +949,9 @@ document.write(`
 })</pre></div></div>
 </div>
 </section>
-<section class="tex2jax_ignore mathjax_ignore" id="job-decorator">
-<h1>Job decorator<a class="headerlink" href="#job-decorator" title="Link to this heading">#</a></h1>
+<section id="job-decorator">
+<h3>Job decorator<a class="headerlink" href="#job-decorator" title="Link to this heading">#</a></h3>
+<p>Finally, to follow the process of calling the <code class="docutils literal notranslate"><span class="pre">wrap_python_function()</span></code> can be simplified further with the <code class="docutils literal notranslate"><span class="pre">&#64;job</span></code> decorator. This decorator can be applied on any Python function an creates the corresponding job class.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyiron_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">job</span>
@@ -904,7 +970,23 @@ document.write(`
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">calculation</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pr</span> <span class="o">=</span> <span class="n">Project</span><span class="p">(</span><span class="s1">&#39;decorator&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pr</span><span class="o">.</span><span class="n">remove_jobs</span><span class="p">(</span><span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">silently</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "3193060e214f4922a86cbc67e87d2f1a", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">calculation</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">pyiron_project</span><span class="o">=</span><span class="n">pr</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -916,11 +998,20 @@ document.write(`
 </div>
 </div>
 <div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The job calculation_dfd3af2444a4040a36ade2cc6f66b360 was saved and received the ID: 164
+</pre></div>
+</div>
 <div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>10
 </pre></div>
 </div>
 </div>
 </div>
+</section>
+</section>
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading">#</a></h2>
+<p>In summary, while pyiron was initially developed for atomistic simulation it now provides a number of ways to integrate additional executables.</p>
+</section>
 </section>
 
     <script type="text/x-thebe-config">
@@ -978,13 +1069,20 @@ document.write(`
   </div>
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#">GenericJob class</a></li>
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#template-job">Template Job</a></li>
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#python-template-job">Python Template Job</a></li>
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#for-testing">For testing</a></li>
-<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#job-decorator">Job decorator</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#external-executable">External Executable</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#genericjob">GenericJob</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#template-job">Template Job</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#for-testing">For testing</a></li>
 </ul>
-
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#python-function">Python Function</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#python-template-job">Python Template Job</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#function-wrapper">Function Wrapper</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#job-decorator">Job decorator</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#summary">Summary</a></li>
+</ul>
   </nav></div>
 
 </div></div>
