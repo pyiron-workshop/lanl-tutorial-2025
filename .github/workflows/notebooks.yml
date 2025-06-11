@@ -27,4 +27,3 @@ jobs:
         flux start papermill 1-getting_started_with_pyiron.ipynb 1-getting_started_with_pyiron-out.ipynb -k python3
         flux start papermill 2-data-driven-materials-science.ipynb 2-data-driven-materials-science-out.ipynb -k python3
         papermill 3-implement-new-job-classes.ipynb 3-implement-new-job-classes-out.ipynb -k python3
-      run: ./.github/ci_support/build_notebooks.sh
