@@ -3,6 +3,7 @@ channels:
 dependencies:
 - python
 - pyiron_atomistics =0.7.8
+- pyiron-data =0.0.30
 - lammps =2024.08.29
 - flux-core
 - nglview
