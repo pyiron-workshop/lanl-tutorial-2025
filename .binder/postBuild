@@ -1,3 +1,0 @@
-# jupyter kernel 
-mkdir -p /home/jovyan/.local/share/jupyter/kernels/flux
-cp .binder/kernel.json /home/jovyan/.local/share/jupyter/kernels/flux
